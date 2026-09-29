@@ -1,0 +1,12 @@
+# never commit secrets
+data/*key*.txt
+data/*token*.txt
+data/*service_account*.json
+data/netlify_site.txt
+data/groq_key.txt
+data/gemini_key.txt
+# generated / local
+cache/
+output/
+__pycache__/
+*.pyc
