@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0e12">
+<title>AASCANS — Live Chart-Pattern Scanner</title>
+<meta name="description" content="AASCANS scans Nifty and recent IPOs for bullish chart patterns on daily and weekly candles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <div class="bar">
+    <div class="logo">
+      <span class="mark">AA</span><span class="word">SCANS</span>
+    </div>
+    <div class="tag">Live bullish chart-pattern scanner · Nifty&nbsp;750 + IPOs · daily &amp; weekly</div>
+    <div class="gen" id="gen"></div>
+  </div>
+  <div class="statbar" id="stats"></div>
+  <div class="controls">
+    <span class="seg" id="tfseg">
+      <button data-tf="weekly" class="on">Weekly</button>
+      <button data-tf="daily">Daily</button>
+    </span>
+    <select id="pat" aria-label="Pattern"><option value="">All patterns</option></select>
+    <select id="sort" aria-label="Sort">
+      <option value="brk">Sort: breakouts</option>
+      <option value="conf">Sort: confidence</option>
+      <option value="sym">Sort: symbol</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="brkonly"> Breakouts only</label>
+    <input id="q" placeholder="Search symbol…" aria-label="Search">
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>No matches for these filters.</div>
+  <div class="loading" id="loading">Loading latest scan…</div>
+</main>
+
+<footer class="foot">
+  <b>AASCANS</b> — research / educational screening tool. <b>Not investment advice.
+  Not SEBI-registered.</b> Patterns are detected mechanically from price data;
+  ▲ marks a confirmed breakout, others are still forming. Every card shows the
+  measured numbers — always verify on your own chart. Weekly candles are slower and
+  less noisy. Price data may occasionally carry a bad print on thin names.
+  <span id="footgen"></span>
+</footer>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<script src="app.js"></script>
+</body>
+</html>
