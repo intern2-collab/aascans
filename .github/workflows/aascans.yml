@@ -1,18 +1,32 @@
 name: AASCANS scan & publish
 
+# Scans the market in the cloud and publishes the site to GitHub Pages — no
+# laptop, no Netlify, no deploy/credit limits. Times are UTC. NSE trades
+# 03:45–10:00 UTC, so this runs roughly hourly through the session plus a
+# post-close pass, on weekdays. You can also run it by hand (Run workflow).
 on:
   schedule:
     - cron: "0 4-11 * * 1-5"
   workflow_dispatch: {}
 
+# GitHub Pages needs these permissions to publish.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two publishes clash; let a running one finish.
 concurrency:
-  group: aascans-scan
+  group: aascans-pages
   cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,9 +39,17 @@ jobs:
       - name: Install dependencies
         run: pip install pandas numpy requests
 
-      - name: Scan and publish
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        run: |
-          python scan_patterns.py --deploy --cache-hours 0
+      - name: Scan the market and build the site data
+        run: python scan_patterns.py --cache-hours 0
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: webapp
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
