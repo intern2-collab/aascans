@@ -30,7 +30,8 @@ def _candles(src: pd.DataFrame, n: int) -> list:
     return out
 
 
-def _rows_for(meta: dict, companies: dict, tf: str) -> list:
+def _rows_for(meta: dict, companies: dict, tf: str, market: dict = None) -> list:
+    market = market or {}
     n_bars = WEEKLY_BARS if tf == "weekly" else DAILY_BARS
     rows = []
     for sym, m in meta.items():
@@ -44,9 +45,12 @@ def _rows_for(meta: dict, companies: dict, tf: str) -> list:
             continue
         window = d["high"].values[-12:-2]
         level = float(np.max(window)) if len(window) else float(d["high"].iloc[-1])
+        mkt = market.get(sym, "IN")               # "IN" (default) or "US"
         rows.append({
             "symbol": sym,
             "company": companies.get(sym, ""),
+            "mkt": mkt,                            # which index/market this belongs to
+            "cur": "$" if mkt == "US" else "₹",  # $ for US, ₹ for India
             "last": round(float(d["close"].iloc[-1]), 2),
             "brk": int(sum(1 for h in hits if h.get("status") == "breakout")),
             "conf": round(max(h["confidence"] for h in hits), 2),
@@ -60,11 +64,11 @@ def _rows_for(meta: dict, companies: dict, tf: str) -> list:
 
 
 def build_data(meta: dict, companies: dict, out_json: str,
-               timeframes=("weekly", "daily")) -> dict:
+               timeframes=("weekly", "daily"), market: dict = None) -> dict:
     data = {"generated": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
             "universe": len(meta), "frames": {}}
     for tf in timeframes:
-        data["frames"][tf] = _rows_for(meta, companies, tf)
+        data["frames"][tf] = _rows_for(meta, companies, tf, market=market)
     os.makedirs(os.path.dirname(out_json) or ".", exist_ok=True)
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(data, f, separators=(",", ":"))
