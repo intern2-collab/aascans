@@ -45,8 +45,10 @@ function chip(p){
 
 function render(){
   const pat=$("pat").value, q=$("q").value.trim().toUpperCase(),
-        brkonly=$("brkonly").checked, sort=$("sort").value;
+        brkonly=$("brkonly").checked, sort=$("sort").value,
+        mkt=($("mkt")?$("mkt").value:"all");
   let rows = frame().filter(r=>{
+    if(mkt!=="all" && (r.mkt||"IN")!==mkt) return false;
     if(q && !r.symbol.includes(q)) return false;
     if(brkonly && !r.brk) return false;
     if(pat && !r.patterns.some(p=>p.name===pat)) return false;
@@ -62,7 +64,7 @@ function render(){
     d.innerHTML =
       '<div class="crow"><div><span class="sym">'+r.symbol+'</span> '+
         '<span class="co">'+(r.company||"")+'</span></div>'+
-        '<span class="px">₹'+r.last+'</span></div>'+
+        '<span class="px">'+(r.cur||'₹')+r.last+'</span></div>'+
       '<div class="chips">'+r.patterns.map(chip).join("")+'</div>'+
       '<canvas></canvas>'+
       '<div class="conf">confidence <b>'+r.conf.toFixed(2)+'</b> · '+r.brk+' breakout(s)</div>'+
@@ -78,7 +80,7 @@ function openModal(r){
   s.innerHTML =
     '<button class="close" onclick="closeModal()">✕ close</button>'+
     '<h2>'+r.symbol+' <span class="co">'+(r.company||"")+'</span></h2>'+
-    '<div class="px">₹'+r.last+' · '+tf+' · confidence '+r.conf.toFixed(2)+'</div>'+
+    '<div class="px">'+(r.cur||'₹')+r.last+' · '+tf+' · confidence '+r.conf.toFixed(2)+'</div>'+
     '<canvas></canvas><ul class="plist">'+
     r.patterns.map(p=>'<li><span class="pn">'+(p.status==="breakout"?"▲ ":"")+p.name+
       '</span> <span class="conf">('+p.conf.toFixed(2)+')</span><br>'+
@@ -111,7 +113,7 @@ $("tfseg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
   $("tfseg").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on"); render();
 });
-["pat","sort","brkonly","q"].forEach(id=>{ const el=$(id); el.oninput=render; el.onchange=render; });
+["mkt","pat","sort","brkonly","q"].forEach(id=>{ const el=$(id); if(!el) return; el.oninput=render; el.onchange=render; });
 $("modal").onclick=e=>{ if(e.target.id==="modal") closeModal(); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
 let rt; window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(render,120); });
