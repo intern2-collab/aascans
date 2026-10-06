@@ -42,6 +42,9 @@ jobs:
       - name: Scan the market and build the site data
         run: python scan_patterns.py --cache-hours 0
 
+      - name: Keep the current Russell-3000 feed (updated daily by the other workflow)
+        run: curl -sfL "https://intern2-collab.github.io/aascans/data_r3000.json" -o webapp/data_r3000.json || echo "(no Russell feed yet — will appear after the daily run)"
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
