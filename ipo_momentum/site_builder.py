@@ -45,12 +45,12 @@ def _rows_for(meta: dict, companies: dict, tf: str, market: dict = None) -> list
             continue
         window = d["high"].values[-12:-2]
         level = float(np.max(window)) if len(window) else float(d["high"].iloc[-1])
-        mkt = market.get(sym, "IN")               # "IN" (default) or "US"
+        mkt = market.get(sym, "IN")               # "IN", "US" (S&P 500), or "US2" (Russell-only)
         rows.append({
             "symbol": sym,
             "company": companies.get(sym, ""),
             "mkt": mkt,                            # which index/market this belongs to
-            "cur": "$" if mkt == "US" else "₹",  # $ for US, ₹ for India
+            "cur": "$" if mkt in ("US", "US2") else "₹",  # $ for US, ₹ for India
             "last": round(float(d["close"].iloc[-1]), 2),
             "brk": int(sum(1 for h in hits if h.get("status") == "breakout")),
             "conf": round(max(h["confidence"] for h in hits), 2),
