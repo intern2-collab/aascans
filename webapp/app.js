@@ -48,7 +48,10 @@ function render(){
         brkonly=$("brkonly").checked, sort=$("sort").value,
         mkt=($("mkt")?$("mkt").value:"all");
   let rows = frame().filter(r=>{
-    if(mkt!=="all" && (r.mkt||"IN")!==mkt) return false;
+    const m=r.mkt||"IN";
+    if(mkt==="IN"    && m!=="IN") return false;
+    if(mkt==="US"    && m!=="US") return false;                  // S&P 500 only
+    if(mkt==="R3000" && !(m==="US"||m==="US2")) return false;    // Russell 3000 ⊇ S&P 500
     if(q && !r.symbol.includes(q)) return false;
     if(brkonly && !r.brk) return false;
     if(pat && !r.patterns.some(p=>p.name===pat)) return false;
@@ -118,7 +121,14 @@ $("modal").onclick=e=>{ if(e.target.id==="modal") closeModal(); };
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
 let rt; window.addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(render,120); });
 
-fetch("data.json?_="+Date.now())
-  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d=>{ DATA=d; $("loading").hidden=true; buildPatternList(); stats(); render(); })
-  .catch(e=>{ $("loading").textContent="Could not load scan data (data.json). Run the scanner to generate it. ["+e.message+"]"; });
+function load(url){ return fetch(url+"?_="+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null); }
+Promise.all([load("data.json"), load("data_r3000.json")]).then(([a,b])=>{
+  if(!a){ $("loading").textContent="Could not load scan data (data.json). Run the scanner to generate it."; return; }
+  DATA=a;
+  if(b && b.frames){                           // merge the Russell-3000 daily feed
+    for(const tf of ["weekly","daily"]) DATA.frames[tf]=(DATA.frames[tf]||[]).concat(b.frames[tf]||[]);
+    if(b.universe) DATA.universe=(DATA.universe||0)+b.universe;
+    if(b.generated) DATA.r3000gen=b.generated;
+  }
+  $("loading").hidden=true; buildPatternList(); stats(); render();
+});
