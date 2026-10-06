@@ -1,0 +1,56 @@
+name: AASCANS Russell-3000 (daily)
+
+# Scans the Russell-3000 (ex-S&P-500) set ONCE a day after the US close and
+# publishes it as a separate feed (data_r3000.json) that the site merges in.
+# The hourly India + S&P-500 workflow is untouched. Times are UTC.
+# 21:30 UTC ≈ after the US cash close (16:00–17:00 ET). Weekdays only.
+on:
+  schedule:
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: aascans-pages           # same group as the hourly job: never deploy at once
+  cancel-in-progress: false
+
+jobs:
+  russell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pandas numpy requests
+
+      - name: Scan Russell-3000 (writes data_r3000.json)
+        run: python scan_patterns.py --russell-only --cache-hours 0 --out-json webapp/data_r3000.json
+
+      - name: Keep the current India + S&P-500 feed live
+        run: curl -sfL "https://intern2-collab.github.io/aascans/data.json" -o webapp/data.json || echo "(no main feed yet)"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: webapp
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
