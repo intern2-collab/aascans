@@ -132,12 +132,39 @@ def main():
                    help="skip the US S&P 500 set (India only)")
     p.add_argument("--sp500-file", default="data/sp500.csv",
                    help="S&P 500 ticker list (US symbols, Yahoo-ready)")
+    p.add_argument("--russell-only", action="store_true",
+                   help="scan ONLY the Russell-3000 (ex-S&P-500) set and write its own feed")
+    p.add_argument("--russell-file", default="data/russell3000.csv",
+                   help="Russell-3000 (ex-S&P-500) ticker list")
+    p.add_argument("--out-json", default="webapp/data.json",
+                   help="site feed to write (Russell run uses webapp/data_r3000.json)")
     p.add_argument("--deploy", action="store_true",
                    help="after the scan, push the AASCANS site live (needs data/netlify_token.txt)")
     p.add_argument("--cache-hours", type=float, default=0,
                    help="reuse cached prices younger than N hours (0 = always fetch fresh; "
                         "default 0 so closing prices are never stale)")
     a = p.parse_args()
+
+    fresh = a.cache_hours <= 0
+
+    # ---- Russell-3000 (ex-S&P-500) daily feed: its own file, no India/sheet ----
+    if a.russell_only:
+        if not os.path.exists(a.russell_file):
+            sys.exit(f"Russell file not found: {a.russell_file}")
+        rsyms = _read_symbols(a.russell_file)
+        out = a.out_json if a.out_json != "webapp/data.json" else "webapp/data_r3000.json"
+        print(f"[{dt.datetime.now():%H:%M:%S}] fetching {len(rsyms)} Russell-3000 symbols "
+              f"({'fresh' if fresh else f'cache<{a.cache_hours}h'}) ...", flush=True)
+        _, rmeta = build_price_panel(rsyms, suffix="", rng=a.rng, pause=a.pause,
+                                     verbose=False, refresh=fresh,
+                                     max_age_hours=(None if fresh else a.cache_hours))
+        print(f"  got price data for {len(rmeta)}/{len(rsyms)} Russell symbols", flush=True)
+        market = {s: "US2" for s in rmeta}
+        from ipo_momentum.site_builder import build_data
+        tfs = ("weekly", "daily") if a.timeframe == "both" else (a.timeframe,)
+        counts = build_data(rmeta, {}, out, timeframes=tfs, market=market)
+        print(f"[{dt.datetime.now():%H:%M:%S}] wrote {out} (Russell feed — {counts})")
+        return
 
     syms, n_ipos = load_symbols(a)
     scope = ("IPO set only" if a.ipos_only else
