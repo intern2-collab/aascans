@@ -17,7 +17,7 @@
     <div class="logo">
       <span class="mark">AA</span><span class="word">SCANS</span>
     </div>
-    <div class="tag">Live bullish chart-pattern scanner · Nifty&nbsp;750 + IPOs · daily &amp; weekly</div>
+    <div class="tag">Live bullish chart-pattern scanner · Nifty&nbsp;750 + IPOs · S&amp;P&nbsp;500 · daily &amp; weekly</div>
     <div class="gen" id="gen"></div>
   </div>
   <div class="statbar" id="stats"></div>
@@ -26,6 +26,11 @@
       <button data-tf="weekly" class="on">Weekly</button>
       <button data-tf="daily">Daily</button>
     </span>
+    <select id="mkt" aria-label="Index">
+      <option value="all">All markets</option>
+      <option value="IN">India · Nifty 750 + IPOs</option>
+      <option value="US">US · S&amp;P 500</option>
+    </select>
     <select id="pat" aria-label="Pattern"><option value="">All patterns</option></select>
     <select id="sort" aria-label="Sort">
       <option value="brk">Sort: breakouts</option>
