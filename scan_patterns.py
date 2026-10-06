@@ -128,6 +128,10 @@ def main():
                    help="scan ONLY the genuine-IPO set (skip the Nifty universe file)")
     p.add_argument("--no-site", action="store_true",
                    help="skip writing webapp/data.json for the AASCANS site")
+    p.add_argument("--no-us", action="store_true",
+                   help="skip the US S&P 500 set (India only)")
+    p.add_argument("--sp500-file", default="data/sp500.csv",
+                   help="S&P 500 ticker list (US symbols, Yahoo-ready)")
     p.add_argument("--deploy", action="store_true",
                    help="after the scan, push the AASCANS site live (needs data/netlify_token.txt)")
     p.add_argument("--cache-hours", type=float, default=0,
@@ -143,7 +147,22 @@ def main():
           f"{'fresh' if fresh else f'cache<{a.cache_hours}h'}) ...", flush=True)
     _, meta = build_price_panel(syms, rng=a.rng, pause=a.pause, verbose=False,
                                 refresh=fresh, max_age_hours=(None if fresh else a.cache_hours))
-    print(f"  got price data for {len(meta)}/{len(syms)} symbols", flush=True)
+    print(f"  got price data for {len(meta)}/{len(syms)} Indian symbols", flush=True)
+
+    # ---- US S&P 500 (fetched WITHOUT the .NS suffix; own market tag) ----
+    us_meta = {}
+    market = {s: "IN" for s in meta}
+    if not a.no_us and os.path.exists(a.sp500_file):
+        us_syms = _read_symbols(a.sp500_file)
+        print(f"[{dt.datetime.now():%H:%M:%S}] fetching {len(us_syms)} US S&P 500 symbols ...", flush=True)
+        _, us_meta = build_price_panel(us_syms, suffix="", rng=a.rng, pause=a.pause,
+                                       verbose=False, refresh=fresh,
+                                       max_age_hours=(None if fresh else a.cache_hours))
+        for s in us_meta:
+            market[s] = "US"
+        print(f"  got price data for {len(us_meta)}/{len(us_syms)} US symbols", flush=True)
+    elif not a.no_us:
+        print(f"  S&P 500 file not found ({a.sp500_file}) — scanning India only", flush=True)
 
     os.makedirs(OUT, exist_ok=True)
     names = {}
@@ -168,8 +187,11 @@ def main():
         try:
             from ipo_momentum.site_builder import build_data
             tfs = ("weekly", "daily") if a.timeframe == "both" else (a.timeframe,)
-            counts = build_data(meta, names, "webapp/data.json", timeframes=tfs)
-            print(f"[{dt.datetime.now():%H:%M:%S}] wrote webapp/data.json (AASCANS feed — {counts})")
+            site_meta = {**meta, **us_meta}           # India + US on the website
+            counts = build_data(site_meta, names, "webapp/data.json",
+                                timeframes=tfs, market=market)
+            print(f"[{dt.datetime.now():%H:%M:%S}] wrote webapp/data.json "
+                  f"(AASCANS feed — {counts}, {len(us_meta)} US names)")
         except Exception as e:
             print(f"  site data build skipped: {str(e)[:120]}")
 
